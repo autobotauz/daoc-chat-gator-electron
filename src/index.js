@@ -59,11 +59,15 @@ function readChatLog() {
   let healTimeStart = 0;
   let healTimeEnd;
   let heals = 0;
-  const damageRegex = /\[(\d{2}:\d{2}:\d{2})\] You hit (.+) for (\d+).+?damage/;
-  const healRegex = /\[(\d{2}:\d{2}:\d{2})\] You heal (.+) for (\d+) hit points./;
-
+  const dotNPetRegex = /\[(\d{2}:\d{2}:\d{2})\] Your (.+) hits (.+) for (\d+).+?damage!/; // time, spell, target, value
+  const critRegex = /\[(\d{2}:\d{2}:\d{2})\] You critically hit for an additional (\d+).+?damage! (Crit Chance: 49%)/ // timestamp, val
+  const damageRegex = /\[(\d{2}:\d{2}:\d{2})\] You hit (.+) for (\d+).+?damage/; // time, target, value
+  const healRegex = /\[(\d{2}:\d{2}:\d{2})\] You heal (.+) for (\d+) hit points./; // time, target, value
+ 
   lines.forEach((line) => {
     const damageMatch = line.match(damageRegex);
+    const dotNPetMatch = line.match(dotNPetRegex);
+    const critMatch = line.match(critRegex);
     const healMatchh = line.match(healRegex);
     if (damageMatch) {
       const [, lineTimestamp, target, val] = damageMatch;
@@ -79,7 +83,22 @@ function readChatLog() {
       }
       healTimeEnd = lineTimestamp;
       heals += parseInt(val, 10);
+    } else if (dotNPetMatch) {
+      const [, lineTimestamp, spell, target, val] = dotNPetMatch;
+      if (dpsTimeStart == 0) {
+        dpsTimeStart = lineTimestamp;
+      }
+      dpsTimeEnd = lineTimestamp;
+      damageOut += parseInt(val, 10);
+    } else if (critMatch) {
+      const [, lineTimestamp, val] = critRegex;
+      if (dpsTimeStart == 0) {
+        dpsTimeStart = lineTimestamp;
+      }
+      dpsTimeEnd = lineTimestamp;
+      damageOut += parseInt(val, 10);
     }
+
   });
   let currentTime = new Date(`1970-01-01T${dpsTimeStart}`);
   let lastTime = new Date(`1970-01-01T${dpsTimeEnd}`);
@@ -89,7 +108,6 @@ function readChatLog() {
   currentTime = new Date(`1970-01-01T${healTimeStart}`);
   lastTime = new Date(`1970-01-01T${healTimeEnd}`);
   elapsedTime = (lastTime - currentTime) > 0 ? (lastTime - currentTime) / 1000 : 0; // Convert to seconds
-  console.log(heals);
   let hps = parseFloat((elapsedTime > 0 ? heals / elapsedTime : heals).toFixed(2));
 
 
