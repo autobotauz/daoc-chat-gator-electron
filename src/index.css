@@ -93,3 +93,21 @@
 #close:hover {
   color:chartreuse
 }
+
+#toggleChartButton {
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+  background: none;
+  border: none;
+  margin-left: 10px; /* Adjust margin as needed */
+}
+
+#toggleChartButton img {
+  -webkit-app-region: no-drag;
+  width: 24px;  /* Adjust the width and height based on your icon size */
+  height: 24px;
+}
+
+#chartContainer {
+  display: none;  /* Hide the chart initially */
+}

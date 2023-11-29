@@ -6,6 +6,9 @@ ipcRenderer.on('update-values', (event, values) => {
   document.getElementById('heals').textContent = `Heals: ${values.heals}`;
   document.getElementById('dps').textContent = `DPS: ${values.dps}`;
   document.getElementById('hps').textContent = `HPS: ${values.hps}`;
+
+  document.getElementById('damageInc').textContent = `Damage Inc: ${values.damageInc}`;
+  document.getElementById('idps').textContent = `IDPS: ${values.idps}`;
 });
 
 // Add event listener for the 'Select Chat Log' button
@@ -16,6 +19,7 @@ document.getElementById('selectFile').addEventListener('click', () => {
   let damageMap = new Map();
   let healMap = new Map();
   let combinedMap = new Map();
+  let damageIncMap = new Map();
   let chart;
 
   ipcRenderer.on('update-damage-map', (_, updatedDamageMap) => {
@@ -24,13 +28,26 @@ document.getElementById('selectFile').addEventListener('click', () => {
     updateChart("damage");
   });
 
-  ipcRenderer.on('update-chart-map', (_, updatedDamageMap, updatedHealsMap, updatedCombinedMap) => {
-    console.log(updatedDamageMap);
+  ipcRenderer.on('update-chart-map', (_, updatedDamageMap, updatedHealsMap, updatedDamageIncMap, updatedCombinedMap) => {
     damageMap = new Map(updatedDamageMap);
     healMap = new Map(updatedHealsMap);
     combinedMap = new Map(updatedCombinedMap)
+    damageIncMap = new Map(updatedDamageIncMap)
     updateChart();
   });
+
+  function toggleChart() {
+    const chartContainer = document.getElementById('damageChart');
+  
+    // Toggle the visibility of the chart container
+    chartContainer.style.display = chartContainer.style.display === 'none' ? 'block' : 'none';
+  
+    // If the chart becomes visible, update it
+    if (chartContainer.style.display === 'block') {
+      updateChart();
+    }
+  }
+  document.getElementById('toggleChartButton').addEventListener('click', toggleChart);
 
 
 
@@ -44,14 +61,21 @@ document.getElementById('selectFile').addEventListener('click', () => {
         data: {
           datasets: [{
             label: "damage",
-            data: [], // Empty array initially
+            data: [],
             borderColor: 'rgba(75, 192, 192, 1)',
             borderWidth: 2,
             fill: false,
           },
           {
+            label: "damage inc",
+            data: [], 
+            borderColor: 'rgba(75, 80, 192, 1)',
+            borderWidth: 2,
+            fill: false,
+          },
+          {
             label: "heals",
-            data: [], // Empty array initially
+            data: [],
             borderColor: 'rgba(75, 192, 88, 1)',
             borderWidth: 2,
             fill: false,
@@ -93,6 +117,10 @@ document.getElementById('selectFile').addEventListener('click', () => {
       x: timestamp,
       y: healMap.get(timestamp),
     }));
+    const damageIncData = labels.map(timestamp => ({
+      x: timestamp,
+      y: damageIncMap.get(timestamp),
+    }));
 
     const sortedLabels = labels
       .map(timestamp => {
@@ -110,7 +138,9 @@ document.getElementById('selectFile').addEventListener('click', () => {
 
     chart.data.labels = sortedLabels;
     chart.data.datasets[0].data = damageData;
-    chart.data.datasets[1].data = healsData;
+    chart.data.datasets[1].data = damageIncData;
+    chart.data.datasets[2].data = healsData;
+    
     chart.update();
 
     // Get the height of the chart
