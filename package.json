@@ -6,6 +6,7 @@
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
+    "package-linux": "electron-forge package --platform=linux",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\"",
@@ -16,7 +17,9 @@
   "author": "jeffa",
   "license": "MIT",
   "dependencies": {
+    "chart": "^0.1.2",
     "chart.js": "^4.4.0",
+    "chokidar": "^3.5.3",
     "electron-reload": "^2.0.0-alpha.1",
     "electron-squirrel-startup": "^1.0.0",
     "react": "^18.2.0",
@@ -31,5 +34,20 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.1.0",
     "electron": "27.1.2",
     "electron-builder": "^24.9.1"
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {
+        "icon": "chatgator-electron\\chatgator\\src\\gator.png"
+      },
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "chatgator"
+          }
+        }
+      ]
+    }
   }
 }

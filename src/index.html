@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="index.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <div id="header">
   <img src="gator.png" alt="Icon" class="icon">
@@ -14,11 +15,19 @@
 </div>
 <body>
   <div id="values">
-    <div id="damageOut">Damage: 0</div>
-    <div id="dps">DPS: 0</div>
-    <div id="heals">Heals: 0</div>
-    <div id="hps">HPS: 0</div>
+    <div id="values-damage">
+      <div id="damageOut">Damage: 0</div>
+      <div id="dps">DPS: 0</div>
+    </div>
+
+    <div id="values-heal">
+      <div id="heals">Heals: 0</div>
+      <div id="hps">HPS: 0</div>
+    </div>
   </div>
+  
+  <canvas id="damageChart" width="200" height="50"></canvas>
+  <!-- <script src="chart.js"></script> -->
   <script src="renderer.js"></script>
 </body>
 </html>

@@ -25,6 +25,32 @@
 
 #values {
   -webkit-app-region: drag;
+  flex-direction:row;
+  display: flex;
+  cursor: pointer;  
+  font-family: "Trebuchet MS", Verdana, sans-serif;
+  justify-content: space-between;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  color: chartreuse;
+}
+
+#values-heal {
+  -webkit-app-region: drag;
+  flex-direction: column;
+  display: flex;
+  cursor: pointer;  
+  font-family: "Trebuchet MS", Verdana, sans-serif;
+  justify-content: space-between;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  color: chartreuse;
+}
+
+#values-damage {
+  -webkit-app-region: drag;
   flex-direction: column;
   display: flex;
   cursor: pointer;  
