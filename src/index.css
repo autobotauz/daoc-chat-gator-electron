@@ -107,7 +107,3 @@
   width: 24px;  /* Adjust the width and height based on your icon size */
   height: 24px;
 }
-
-#chartContainer {
-  display: none;  /* Hide the chart initially */
-}

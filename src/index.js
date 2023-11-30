@@ -62,6 +62,7 @@ function createWindow() {
               damageMap = new Map();
               healMap = new Map();
               combinedMap = new Map();
+              damageIncMap = new Map();
               let dps = 0;
               let hps = 0;
               let idps = 0;
@@ -75,9 +76,6 @@ function createWindow() {
       });
 
 }
-
-
-
 
 
 function damageLine(regexMatch) {
@@ -203,26 +201,7 @@ function damageIncLine(regexMatch) {
   damageInc += parseInt(val, 10);
 }
 
-
-function updateDamage(timestamp, damageValue) {
-  updateMap('damage', timestamp, damageValue);
-}
-
-function updateHeals(timestamp, healsValue) {
-  updateMap('heals', timestamp, healsValue);
-}
-
-function updateMap(type, timestamp, value) {
-  if (!combinedMap.has(timestamp)) {
-    combinedMap.set(timestamp, { damage: 0, heals: 0 });
-  }
-
-  const entry = combinedMap.get(timestamp);
-  entry[type] += value;
-
-  // Now combinedMap contains the updated values for both damage and heals
-}
-
+let loggingEnabled = false;
 
 function readChatLog() {
   dpsTimeStart = 0;
@@ -231,9 +210,11 @@ function readChatLog() {
   healTimeStart = 0;
   healTimeEnd;
   heals = 0;
+  damageInc = 0;
   damageMap = new Map();
   healMap = new Map();
   combinedMap = new Map();
+  damageIncMap = new Map();
 
   const logContent = fs.readFileSync(gatorLog, 'utf8');
   const lines = logContent.split('\n');
@@ -261,6 +242,9 @@ function readChatLog() {
   const interruptedPattern = /\[(\d{2}:\d{2}:\d{2})\] (interrupt your spellcast)|(spell is interrupted)|(interrupt your focus)/;
   const overHealedPattern = /\[(\d{2}:\d{2}:\d{2})\] fully healed/;
  
+  const logOpenedPattern = /Chat Log Opened:.+?\d{2}:\d{2}:\d{2} \d{4}/;
+  const logClosedPattern = /Chat Log Closed:.+?\d{2}:\d{2}:\d{2} \d{4}/;
+
 
   lines.forEach((line) => {
       const damageMatch = line.match(damageRegex);
@@ -276,6 +260,9 @@ function readChatLog() {
 
       const incDamageMatch = line.match(incDamagePattern);
       const bodyDamageMatch = line.match(bodyDamagePattern);
+
+      const logOpenedMatch = line.match(logOpenedPattern);
+      const logClosedMatch = line.match(logClosedPattern);
 
       if (damageMatch) {
         damageLine(damageMatch);
@@ -302,9 +289,14 @@ function readChatLog() {
       } else if (bodyDamageMatch) {
         damageIncLine(bodyDamageMatch);
       } 
-
-
+      else if (logOpenedMatch) {
+        loggingEnabled = true;
+      } else if (logClosedMatch) {
+        loggingEnabled = false;
+      } 
   });
+
+
   let currentTime = new Date(`1970-01-01T${dpsTimeStart}`);
   let lastTime = new Date(`1970-01-01T${dpsTimeEnd}`);
   let elapsedTime = (lastTime - currentTime) / 1000; // Convert to seconds
@@ -319,11 +311,12 @@ function readChatLog() {
   lastTime = new Date(`1970-01-01T${damageIncTimeEnd}`);
   elapsedTime = (lastTime - currentTime) > 0 ? (lastTime - currentTime) / 1000 : 0; // Convert to seconds
   let idps = parseFloat((elapsedTime > 0 ? damageInc / elapsedTime : damageInc).toFixed(2));
-
-
+  console.log(loggingEnabled);
+  mainWindow.webContents.send('update-header',  loggingEnabled );
   mainWindow.webContents.send('update-values', { damageOut, heals, damageInc, dps, hps, idps });
   mainWindow.webContents.send('update-chart-map', damageMap, healMap, damageIncMap, combinedMap);
 }
+
 
 app.on('ready', createWindow);
 
@@ -357,11 +350,12 @@ ipcMain.on('select-file', () => {
     chatLogPath = result[0];
     const watcher = chokidar.watch(chatLogPath, {
       ignoreInitial: true,
+
     });
 
     // Specify the destination path for the copied file
     gatorLog = path.join(path.dirname(chatLogPath), 'chatgator_log');
-
+    setInterval(checkFileChanges, pollingInterval);
     // Call the function to copy the file
     copyFile(chatLogPath, gatorLog);
     readChatLog();
@@ -385,3 +379,28 @@ function copyFile(sourcePath, destinationPath) {
     console.error('Error copying file:', error.message);
   }
 }
+
+const pollingInterval = 500; // in milliseconds
+let previousSize = 0;
+let previousMtime = 0;
+
+function checkFileChanges() {
+  fs.stat(chatLogPath, (err, stats) => {
+    if (err) {
+      console.error('Error getting file stats:', err.message);
+      return;
+    }
+
+    // Compare current stats with previous stats
+    if (stats.size !== previousSize || stats.mtime.getTime() !== previousMtime) {
+      console.log('File has changed!');
+      // Trigger the necessary actions when the file changes
+
+      // Update previous stats
+      previousSize = stats.size;
+      previousMtime = stats.mtime.getTime();
+    }
+  });
+}
+
+
