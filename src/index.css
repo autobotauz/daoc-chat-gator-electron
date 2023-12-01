@@ -64,8 +64,8 @@
 
 .btn-group .button {
   -webkit-app-region: no-drag;
-  background-color: #0ab475; /* Green */
-  border: 1px solid #0ab475;
+  background: none;
+  border: none;
   color: white;
   text-align: center;                      
   text-decoration: none;
@@ -99,7 +99,15 @@
   cursor: pointer;
   background: none;
   border: none;
-  margin-left: 10px; /* Adjust margin as needed */
+  margin-right: 25px; /* Adjust margin as needed */
+}
+
+#openTableButton {
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+  background: none;
+  border: none;
+  margin-left: 25px; /* Adjust margin as needed */
 }
 
 #toggleChartButton img {

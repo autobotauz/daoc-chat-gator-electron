@@ -20,8 +20,10 @@
     "chart": "^0.1.2",
     "chart.js": "^4.4.0",
     "chokidar": "^3.5.3",
+    "datatables.net": "^1.13.8",
     "electron-reload": "^2.0.0-alpha.1",
     "electron-squirrel-startup": "^1.0.0",
+    "jquery": "^3.7.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

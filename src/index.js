@@ -1,8 +1,6 @@
 const { app, BrowserWindow, dialog, ipcMain, globalShortcut  } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { Console } = require('console');
-const readline = require('readline');
 const chokidar = require('chokidar');
 
 require("electron-reload")(__dirname)
@@ -19,6 +17,7 @@ let damageIncTimeEnd;
 let heals = 0;
 
 let damageMap = new Map();
+let spellDamageMap = new Map();
 let damageIncMap = new Map();
 let healMap = new Map();
 let combinedMap = new Map();
@@ -50,19 +49,10 @@ function createWindow() {
           fs.unlink(chatLogPath, (err) => {
             if (err) {
               console.error('Error deleting file:', err);
+              dialog.showErrorBox('Error', "Can't delete the file. Please check if logging is disabled");
             } else {
               console.log('File deleted successfully.');
-              dpsTimeStart = 0;
-              dpsTimeEnd= 0;
-              damageOut = 0;
-              healTimeStart = 0;
-              healTimeEnd;
-              heals = 0;
-              damageInc = 0;
-              damageMap = new Map();
-              healMap = new Map();
-              combinedMap = new Map();
-              damageIncMap = new Map();
+              resetValues();
               let dps = 0;
               let hps = 0;
               let idps = 0;
@@ -91,8 +81,35 @@ function damageLine(regexMatch) {
   } else {
     damageMap.set(lineTimestamp, parseInt(val, 10));
   }
+
+  updateSpellMap(spellName, val);
+
   combinedMap.set(lineTimestamp, 0)
   damageOut += parseInt(val, 10);
+}
+
+function updateSpellMap(spell, val) {
+  if (spellDamageMap.has(spell)) {
+    const stats = spellDamageMap.get(spell);
+    if (stats instanceof Map) {
+      let currentValue = parseInt(stats.get("output"), 10);
+      let newValue = currentValue + parseInt(val, 10);
+      stats.set("output", newValue)
+
+      currentValue = parseInt(stats.get("hits"), 10);
+      newValue = currentValue + 1;
+      stats.set("hits", newValue)
+
+      spellDamageMap.set(spell, stats);
+    }
+  } else {
+    if (spell != ""){
+      const spellStats = new Map();
+      spellStats.set("output", parseInt(val, 10))
+      spellStats.set("hits", 1)
+      spellDamageMap.set(spell, spellStats);
+    }
+  }
 }
 
 function damageWeapLine(regexMatch) {
@@ -108,6 +125,14 @@ function damageWeapLine(regexMatch) {
   } else {
     damageMap.set(lineTimestamp, parseInt(val, 10));
   }
+
+  if (spellName == "") {
+    updateSpellMap(weapon, val);
+  } else {
+    updateSpellMap(spellName, val);
+  }
+  
+
   combinedMap.set(lineTimestamp, 0)
   damageOut += parseInt(val, 10);
 }
@@ -125,6 +150,10 @@ function dotNPetLine(regexMatch) {
   } else {
     damageMap.set(lineTimestamp, parseInt(val, 10));
   }
+
+
+  updateSpellMap(spell, val);
+
   combinedMap.set(lineTimestamp, 0)
   damageOut += parseInt(val, 10);
 }
@@ -142,6 +171,10 @@ function critLine(regexMatch) {
   } else {
     damageMap.set(lineTimestamp, parseInt(val, 10));
   }
+
+
+  updateSpellMap(spellName, val);
+
   combinedMap.set(lineTimestamp, 0)
   damageOut += parseInt(val, 10);
 }
@@ -159,6 +192,10 @@ function healLine(regexMatch) {
   } else {
     healMap.set(lineTimestamp, parseInt(val, 10));
   }
+
+
+  updateSpellMap(spellName, val);
+
   combinedMap.set(lineTimestamp, 0)
   healTimeEnd = lineTimestamp;
   heals += parseInt(val, 10);
@@ -177,6 +214,11 @@ function healCritLine(regexMatch) {
   } else {
     healMap.set(lineTimestamp, parseInt(val, 10));
   }
+
+  
+
+  updateSpellMap(spellName, val);
+
   combinedMap.set(lineTimestamp, 0)
   healTimeEnd = lineTimestamp;
   heals += parseInt(val, 10);
@@ -202,8 +244,9 @@ function damageIncLine(regexMatch) {
 }
 
 let loggingEnabled = false;
+let spellName = "";
 
-function readChatLog() {
+function resetValues() {
   dpsTimeStart = 0;
   dpsTimeEnd= 0;
   damageOut = 0;
@@ -215,6 +258,11 @@ function readChatLog() {
   healMap = new Map();
   combinedMap = new Map();
   damageIncMap = new Map();
+  spellDamageMap = new Map();
+}
+
+function readChatLog() {
+  resetValues();
 
   const logContent = fs.readFileSync(gatorLog, 'utf8');
   const lines = logContent.split('\n');
@@ -224,15 +272,16 @@ function readChatLog() {
   const critRegex = /\[(\d{2}:\d{2}:\d{2})\] You critically hit for an additional (\d+).+?damage!/ // timestamp, val
   const healRegex = /\[(\d{2}:\d{2}:\d{2})\] You heal (.+) for (\d+) hit points./; // time, target, value
   const critAttackPattern = /\[(\d{2}:\d{2}:\d{2})\] You critically hit .+? for an additional (\d+) damage!/;
-  const dotCritPattern = /\[(\d{2}:\d{2}:\d{2})\] Your (.+?) critically hits .+? for an additional (\d+) damage!/; // 1:spellName, 2:damageValue
+  const dotCritPattern = /\[(\d{2}:\d{2}:\d{2})\] Your (.+?) critically hits (.+?) for an additional (\d+) damage!/; // 1:spellName, 2:damageValue
   const critHealPattern = /\[(\d{2}:\d{2}:\d{2})\] Your heal criticals for an extra (\d+) amount of hit points!/;
-  const dotDamagePattern = /\[(\d{2}:\d{2}:\d{2})\] Your (.+?) attacks .+? and hits for (\d+).+?damage!/; // 1:spellName, 2:damageValue
+  const dotDamagePattern = /\[(\d{2}:\d{2}:\d{2})\] Your (.+?) attacks (.+?) and hits for (\d+).+?damage!/; // 1:spellName, 2:damageValue
   const attackPattern = /\[(\d{2}:\d{2}:\d{2})\] You attack (.+?) with your (.+?) and hit for (\d+).+?damage!/; // 1:weaponName, 2:damage
 
   const startCastPattern = /\[(\d{2}:\d{2}:\d{2})\] You begin casting a (.+?) spell!/; // 1: time 2: spellName
   const spellPattern = /\[(\d{2}:\d{2}:\d{2})\] You cast a (.+?) spell!/; // 1: time 2: spellName
-  const shotPattern = /\[(\d{2}:\d{2}:\d{2})\] You fire a (.+?)!/;
-  const styleGrowthPattern = /\[(\d{2}:\d{2}:\d{2})\] You perform your (.+?) perfectly!.+?(\d+),/; // 1:styleName, 2:growthValue
+  const shotPattern = /\[(\d{2}:\d{2}:\d{2})\] You fire a (.+?)!/; // 1: time 2: spellName
+
+  const styleGrowthPattern = /\[(\d{2}:\d{2}:\d{2})\] You perform your (.+?) perfectly!/;
   const killPattern = /\[(\d{2}:\d{2}:\d{2})\] You just killed (.+?)!/;
   
   const bodyDamagePattern = /\[(\d{2}:\d{2}:\d{2})\] .+? hits your .+? for (\d+).*damage!/;
@@ -240,6 +289,7 @@ function readChatLog() {
 
   const resistPattern = /\[(\d{2}:\d{2}:\d{2})\] .+?resists the effect!.+?/;
   const interruptedPattern = /\[(\d{2}:\d{2}:\d{2})\] (interrupt your spellcast)|(spell is interrupted)|(interrupt your focus)/;
+  
   const overHealedPattern = /\[(\d{2}:\d{2}:\d{2})\] fully healed/;
  
   const logOpenedPattern = /Chat Log Opened:.+?\d{2}:\d{2}:\d{2} \d{4}/;
@@ -264,6 +314,13 @@ function readChatLog() {
       const logOpenedMatch = line.match(logOpenedPattern);
       const logClosedMatch = line.match(logClosedPattern);
 
+      const startCastMatch = line.match(startCastPattern);
+      const spellMatch = line.match(spellPattern);
+      const shotMatch = line.match(shotPattern);
+      const styleGrowthMatch = line.match(styleGrowthPattern);
+
+      const resistMatch = line.match(resistPattern);
+      const interruptedMatch = line.match(interruptedPattern);
       if (damageMatch) {
         damageLine(damageMatch);
       } else if (healMatchh) {
@@ -294,28 +351,50 @@ function readChatLog() {
       } else if (logClosedMatch) {
         loggingEnabled = false;
       } 
+
+      else if (resistMatch) {
+        spellName = "";
+      } else if (interruptedMatch) {
+        spellName = "";
+      } 
+
+      else if (startCastMatch) {
+        const [, lineTimestamp, val] = startCastMatch;
+        spellName = val;
+      } else if (spellMatch) {
+        const [, lineTimestamp, val] = spellMatch;
+        spellName = val;
+      }  else if (shotMatch) {
+        const [, lineTimestamp, val] = shotMatch;
+        spellName = val;
+      } 
+      else if (styleGrowthMatch) {
+        const [, lineTimestamp, val, growth] = styleGrowthMatch;
+        spellName = val;
+      }
   });
 
 
   let currentTime = new Date(`1970-01-01T${dpsTimeStart}`);
   let lastTime = new Date(`1970-01-01T${dpsTimeEnd}`);
-  let elapsedTime = (lastTime - currentTime) / 1000; // Convert to seconds
+  let elapsedTime = (lastTime - currentTime) / 1000;
   let dps = parseFloat((elapsedTime > 0 ? damageOut / elapsedTime : 0).toFixed(2));
 
   currentTime = new Date(`1970-01-01T${healTimeStart}`);
   lastTime = new Date(`1970-01-01T${healTimeEnd}`);
-  elapsedTime = (lastTime - currentTime) > 0 ? (lastTime - currentTime) / 1000 : 0; // Convert to seconds
+  elapsedTime = (lastTime - currentTime) > 0 ? (lastTime - currentTime) / 1000 : 0;
   let hps = parseFloat((elapsedTime > 0 ? heals / elapsedTime : heals).toFixed(2));
 
   currentTime = new Date(`1970-01-01T${damageIncTimeStart}`);
   lastTime = new Date(`1970-01-01T${damageIncTimeEnd}`);
-  elapsedTime = (lastTime - currentTime) > 0 ? (lastTime - currentTime) / 1000 : 0; // Convert to seconds
+  elapsedTime = (lastTime - currentTime) > 0 ? (lastTime - currentTime) / 1000 : 0;
   let idps = parseFloat((elapsedTime > 0 ? damageInc / elapsedTime : damageInc).toFixed(2));
-  console.log(loggingEnabled);
   mainWindow.webContents.send('update-header',  loggingEnabled );
   mainWindow.webContents.send('update-values', { damageOut, heals, damageInc, dps, hps, idps });
   mainWindow.webContents.send('update-chart-map', damageMap, healMap, damageIncMap, combinedMap);
+  updateTableData(spellDamageMap);
 }
+
 
 
 app.on('ready', createWindow);
@@ -344,8 +423,6 @@ ipcMain.on('select-file', () => {
     filters: [{ name: 'Log Files', extensions: ['log'] }],
   });
 
-
-  
   if (result && result.length > 0 ) {
     chatLogPath = result[0];
     const watcher = chokidar.watch(chatLogPath, {
@@ -353,10 +430,8 @@ ipcMain.on('select-file', () => {
 
     });
 
-    // Specify the destination path for the copied file
     gatorLog = path.join(path.dirname(chatLogPath), 'chatgator_log');
     setInterval(checkFileChanges, pollingInterval);
-    // Call the function to copy the file
     copyFile(chatLogPath, gatorLog);
     readChatLog();
     watcher.on('change', (path) => {
@@ -368,19 +443,15 @@ ipcMain.on('select-file', () => {
 
 function copyFile(sourcePath, destinationPath) {
   try {
-    // Read the contents of the source file
     const fileContent = fs.readFileSync(sourcePath);
-
-    // Write the contents to the destination file
     fs.writeFileSync(destinationPath, fileContent);
-
     console.log('File copied successfully!');
   } catch (error) {
     console.error('Error copying file:', error.message);
   }
 }
 
-const pollingInterval = 500; // in milliseconds
+const pollingInterval = 500;
 let previousSize = 0;
 let previousMtime = 0;
 
@@ -390,17 +461,53 @@ function checkFileChanges() {
       console.error('Error getting file stats:', err.message);
       return;
     }
-
-    // Compare current stats with previous stats
     if (stats.size !== previousSize || stats.mtime.getTime() !== previousMtime) {
       console.log('File has changed!');
-      // Trigger the necessary actions when the file changes
-
-      // Update previous stats
       previousSize = stats.size;
       previousMtime = stats.mtime.getTime();
     }
   });
 }
 
+let tableWindow;
 
+
+
+
+ipcMain.on('open-table-window', (event, spellData) => {
+  if (!tableWindow || tableWindow.isDestroyed()) {
+    tableWindow = new BrowserWindow({
+      width: 600,
+      height: 300,
+      minWidth: 100,
+      minHeight: 100,
+      autoHideMenuBar: true,
+      titleBarStyle: 'hiddenInset',
+      focusable: true,
+      focus: true,
+      frame: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+      },
+      resizable: true,
+      alwaysOnTop: true
+    });
+
+    tableWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+    
+    tableWindow.loadFile(path.join(__dirname, 'table.html'));
+    tableWindow.webContents.on('did-finish-load', () => {
+      tableWindow.webContents.send('load-table-data', spellDamageMap);
+    });
+
+    tableWindow.on('closed', () => {
+      tableWindow = null;
+    });
+  }
+});
+
+function updateTableData(updatedSpellData) {
+  if (tableWindow && !tableWindow.isDestroyed()) {
+    tableWindow.webContents.send('update-table-data', updatedSpellData);
+  }
+}

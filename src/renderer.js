@@ -1,6 +1,47 @@
 // renderer.js
 const { ipcRenderer } = window.electron;
 
+ipcRenderer.on('load-table-data', (event, spellData) => {
+    loadTableData(spellDataToArray(spellData));
+});
+ipcRenderer.on('update-table-data', (event, updatedSpellData) => {
+  loadTableData(spellDataToArray(updatedSpellData));
+});
+
+function spellDataToArray(spellData) {
+  return Array.from(spellData.entries()).map(([spellName, statsMap]) => ({
+    spellName,
+    hits: statsMap.get('hits'),
+    output: statsMap.get('output'),
+    average: parseFloat((statsMap.get('output') > 0 ? statsMap.get('output') / statsMap.get('hits') : statsMap.get('output')).toFixed(2)),
+  }));
+}
+
+let dataTable;
+function loadTableData(spellDataArray) {
+  if (!dataTable) {
+    // If DataTable doesn't exist, initialize it
+    $(document).ready(function () {
+      dataTable = $('#spellTable').DataTable({
+        data: spellDataArray,
+        columns: [
+          { data: 'spellName' },
+          { data: 'hits' },
+          { data: 'output' },
+          { data: 'average' },
+          // More columns like cast speed, resist, miss, etc -> break out to spell and melee?
+        ],
+      });
+    });
+  } else {
+    dataTable.clear().rows.add(spellDataArray).draw();
+  }
+}
+
+document.getElementById('openTableButton').addEventListener('click', () => {
+  ipcRenderer.send('open-table-window');
+});
+
 ipcRenderer.on('update-values', (event, values) => {
   document.getElementById('damageOut').textContent = `Damage: ${values.damageOut}`;
   document.getElementById('heals').textContent = `Heals: ${values.heals}`;
@@ -11,7 +52,6 @@ ipcRenderer.on('update-values', (event, values) => {
   document.getElementById('idps').textContent = `IDPS: ${values.idps}`;
 });
 
-// Add event listener for the 'Select Chat Log' button
 document.getElementById('selectFile').addEventListener('click', () => {
     ipcRenderer.send('select-file');
   });
@@ -50,21 +90,14 @@ document.getElementById('selectFile').addEventListener('click', () => {
     }
   }
 
-  
   function toggleChart() {
     const chartContainer = document.getElementById('damageChart');
-  
-    // Toggle the visibility of the chart container
-    chartContainer.style.display = chartContainer.style.display === 'none' ? 'block' : 'none';
-  
-    // If the chart becomes visible, update it
-    if (chartContainer.style.display === 'block') {
+      chartContainer.style.display = chartContainer.style.display === 'none' ? 'block' : 'none';
+      if (chartContainer.style.display === 'block') {
       updateChart();
     }
   }
   document.getElementById('toggleChartButton').addEventListener('click', toggleChart);
-
-
 
   function updateChart(labelName) {
     const canvas = document.getElementById('damageChart');
@@ -150,9 +183,6 @@ document.getElementById('selectFile').addEventListener('click', () => {
       dataDamage = aggregateData(damageMap, 1);
       dataDamageInc = aggregateData(damageIncMap, 1);
     }
-  
-  
-
 
    const labels = Array.from(combineLabels.keys());
 
@@ -189,12 +219,9 @@ document.getElementById('selectFile').addEventListener('click', () => {
     chart.data.datasets[2].data = healsData;
     
     chart.update();
-
-    // Get the height of the chart
     const chartHeight = document.getElementById('damageChart').offsetHeight;
 
-    // Set the window size based on the chart height
-    const { width } = win.getContentBounds(); // Preserve the existing width
+    const { width } = win.getContentBounds();
     win.setSize(width, chartHeight, true);
   }
 
@@ -210,7 +237,6 @@ document.getElementById('selectFile').addEventListener('click', () => {
     return aggregatedData;
   }
   
-  // Helper function to round a timestamp to the nearest interval
   function roundToInterval(timestamp, interval) {
     const [hours, minutes, seconds] = timestamp.split(':').map(Number);
     const totalSeconds = hours * 3600 + minutes * 60 + seconds;
@@ -221,7 +247,6 @@ document.getElementById('selectFile').addEventListener('click', () => {
     return `${pad(newHours)}:${pad(newMinutes)}:${pad(newSeconds)}`;
   }
   
-  // Helper function to pad a number with leading zeros
   function pad(number) {
     return number.toString().padStart(2, '0');
   }
