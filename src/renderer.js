@@ -11,7 +11,7 @@ ipcRenderer.on('update-table-data', (event, updatedSpellData) => {
 function spellDataToArray(spellData) {
   return Array.from(spellData.entries()).map(([spellName, statsMap]) => ({
     spellName,
-    hits: statsMap.get('hits'),
+    count: statsMap.get('hits'),
     output: statsMap.get('output'),
     average: parseFloat((statsMap.get('output') > 0 ? statsMap.get('output') / statsMap.get('hits') : statsMap.get('output')).toFixed(2)),
   }));
@@ -26,7 +26,7 @@ function loadTableData(spellDataArray) {
         data: spellDataArray,
         columns: [
           { data: 'spellName' },
-          { data: 'hits' },
+          { data: 'count' },
           { data: 'output' },
           { data: 'average' },
           // More columns like cast speed, resist, miss, etc -> break out to spell and melee?
