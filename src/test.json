@@ -1,0 +1,40 @@
+{
+    "spells": {
+        "damage": {
+            "Arawans Inferno": {
+                "output": [1],
+                "resists": 1,
+                "interrupted": 99,
+                "critOutput": [1],
+            }
+        },
+        "heals": {
+            "Rejuvenation": {
+                "interrupted": 99,
+                "critOutput": [123],
+                "output": [1]
+            },
+            "Slam": {
+                "interrupted": 0,
+                "critOutput": [],
+                "output": [1]
+            }
+        }
+    },
+    "styles": {
+        "Indigo Snake": {
+            "Dragon Knights Flame": {
+                "output": [1],
+                "critOutput": [1],
+                "extraDamage": [1],
+                "spellDamage": [1],
+                "growth": [1],
+                "miss": 1,
+                "blocked": 1,
+                "parried": 1,
+                "evaded": 1,
+                "resists": 1
+            }
+        }
+    }
+}

@@ -15,11 +15,15 @@ let healTimeEnd;
 let damageIncTimeStart = 0;
 let damageIncTimeEnd;
 let heals = 0;
+let iheals = 0;
 
 let damageMap = new Map();
 let spellDamageMap = new Map();
 let damageIncMap = new Map();
 let healMap = new Map();
+let ihealMap = new Map();
+let healTargetMap = new Map();
+let meleeDamageMap = new Map();
 let combinedMap = new Map();
 
 function createWindow() {
@@ -55,9 +59,10 @@ function createWindow() {
               resetValues();
               let dps = 0;
               let hps = 0;
+              let ihps = 0;
               let idps = 0;
-              mainWindow.webContents.send('update-values', { damageOut, heals, damageInc, dps, hps, idps });
-              mainWindow.webContents.send('update-chart-map', damageMap, healMap, damageIncMap, combinedMap);
+              mainWindow.webContents.send('update-values', { damageOut, heals, iheals, damageInc, dps, hps, idps });
+              mainWindow.webContents.send('update-chart-map', damageMap, healMap, ihealMap, damageIncMap, combinedMap);
             }
           });
         } else {
@@ -112,6 +117,54 @@ function updateSpellMap(spell, val) {
   }
 }
 
+function updateMeleeMap(spell, val) {
+  if (meleeDamageMap.has(spell)) {
+    const stats = meleeDamageMap.get(spell);
+    if (stats instanceof Map) {
+      let currentValue = parseInt(stats.get("output"), 10);
+      let newValue = currentValue + parseInt(val, 10);
+      stats.set("output", newValue)
+
+      currentValue = parseInt(stats.get("hits"), 10);
+      newValue = currentValue + 1;
+      stats.set("hits", newValue)
+
+      meleeDamageMap.set(spell, stats);
+    }
+  } else {
+    if (spell != ""){
+      const spellStats = new Map();
+      spellStats.set("output", parseInt(val, 10))
+      spellStats.set("hits", 1)
+      meleeDamageMap.set(spell, spellStats);
+    }
+  }
+}
+
+function updateHealMap(target, val) {
+  if (healTargetMap.has(target)) {
+    const stats = healTargetMap.get(target);
+    if (stats instanceof Map) {
+      let currentValue = parseInt(stats.get("output"), 10);
+      let newValue = currentValue + parseInt(val, 10);
+      stats.set("output", newValue)
+
+      currentValue = parseInt(stats.get("hits"), 10);
+      newValue = currentValue + 1;
+      stats.set("hits", newValue)
+
+      healTargetMap.set(target, stats);
+    }
+  } else {
+    if (target != ""){
+      const spellStats = new Map();
+      spellStats.set("output", parseInt(val, 10))
+      spellStats.set("hits", 1)
+      healTargetMap.set(target, spellStats);
+    }
+  }
+}
+
 function damageWeapLine(regexMatch) {
   const [, lineTimestamp, target, weapon, val] = regexMatch;
   if (dpsTimeStart == 0) {
@@ -127,11 +180,10 @@ function damageWeapLine(regexMatch) {
   }
 
   if (spellName == "") {
-    updateSpellMap(weapon, val);
+    updateMeleeMap(weapon, val);
   } else {
-    updateSpellMap(spellName, val);
+    updateMeleeMap(spellName, val);
   }
-  
 
   combinedMap.set(lineTimestamp, 0)
   damageOut += parseInt(val, 10);
@@ -193,12 +245,33 @@ function healLine(regexMatch) {
     healMap.set(lineTimestamp, parseInt(val, 10));
   }
 
-
-  updateSpellMap(spellName, val);
+  // updateSpellMap(spellName, val);
+  updateHealMap("Out: "+target, val)
 
   combinedMap.set(lineTimestamp, 0)
   healTimeEnd = lineTimestamp;
   heals += parseInt(val, 10);
+}
+
+function healByLine(regexMatch) {
+  const [, lineTimestamp, target, val] = regexMatch;
+  if (healTimeStart == 0) {
+    healTimeStart = lineTimestamp;
+  }
+
+  if (ihealMap.has(lineTimestamp)) {
+    const currentValue = parseInt(ihealMap.get(lineTimestamp), 10);
+    const newValue = currentValue + parseInt(val, 10);
+    ihealMap.set(lineTimestamp, newValue);
+  } else {
+    ihealMap.set(lineTimestamp, parseInt(val, 10));
+  }
+
+  updateHealMap("In: "+target, val)
+
+  combinedMap.set(lineTimestamp, 0)
+  healTimeEnd = lineTimestamp;
+  iheals += parseInt(val, 10);
 }
 
 function healCritLine(regexMatch) {
@@ -216,8 +289,8 @@ function healCritLine(regexMatch) {
   }
 
   
-
-  updateSpellMap(spellName, val);
+  updateHealMap("Out: "+target, val)
+  // updateSpellMap(spellName, val);
 
   combinedMap.set(lineTimestamp, 0)
   healTimeEnd = lineTimestamp;
@@ -253,12 +326,16 @@ function resetValues() {
   healTimeStart = 0;
   healTimeEnd;
   heals = 0;
+  iheals = 0;
   damageInc = 0;
   damageMap = new Map();
   healMap = new Map();
+  ihealMap = new Map();
   combinedMap = new Map();
   damageIncMap = new Map();
   spellDamageMap = new Map();
+  healTargetMap = new Map();
+  meleeDamageMap = new Map();
 }
 
 function readChatLog() {
@@ -271,6 +348,7 @@ function readChatLog() {
   const dotNPetRegex = /\[(\d{2}:\d{2}:\d{2})\] Your (.+) hits (.+) for (\d+).+?damage!/; // time, spell, target, value
   const critRegex = /\[(\d{2}:\d{2}:\d{2})\] You critically hit for an additional (\d+).+?damage!/ // timestamp, val
   const healRegex = /\[(\d{2}:\d{2}:\d{2})\] You heal (.+) for (\d+) hit points./; // time, target, value
+  const healByRegex = /\[(\d{2}:\d{2}:\d{2})\] You are healed by (.+) for (\d+) hit points./; // time, target, value
   const critAttackPattern = /\[(\d{2}:\d{2}:\d{2})\] You critically hit .+? for an additional (\d+) damage!/;
   const dotCritPattern = /\[(\d{2}:\d{2}:\d{2})\] Your (.+?) critically hits (.+?) for an additional (\d+) damage!/; // 1:spellName, 2:damageValue
   const critHealPattern = /\[(\d{2}:\d{2}:\d{2})\] Your heal criticals for an extra (\d+) amount of hit points!/;
@@ -300,7 +378,9 @@ function readChatLog() {
       const damageMatch = line.match(damageRegex);
       const dotNPetMatch = line.match(dotNPetRegex);
       const critMatch = line.match(critRegex);
+
       const healMatchh = line.match(healRegex);
+      const healByMatchh = line.match(healByRegex);
 
       const critAttackMatch = line.match(critAttackPattern);
       const dotCritMatch = line.match(dotCritPattern);
@@ -323,8 +403,14 @@ function readChatLog() {
       const interruptedMatch = line.match(interruptedPattern);
       if (damageMatch) {
         damageLine(damageMatch);
+        
+
       } else if (healMatchh) {
         healLine(healMatchh);
+
+      } else if (healByMatchh) {
+        healByLine(healByMatchh);
+
       } else if (dotNPetMatch) {
         dotNPetLine(dotNPetMatch);
       } else if (critMatch) {
@@ -372,6 +458,7 @@ function readChatLog() {
         const [, lineTimestamp, val, growth] = styleGrowthMatch;
         spellName = val;
       }
+
   });
 
 
@@ -385,14 +472,16 @@ function readChatLog() {
   elapsedTime = (lastTime - currentTime) > 0 ? (lastTime - currentTime) / 1000 : 0;
   let hps = parseFloat((elapsedTime > 0 ? heals / elapsedTime : heals).toFixed(2));
 
+  let ihps = parseFloat((elapsedTime > 0 ? iheals / elapsedTime : iheals).toFixed(2));
+
   currentTime = new Date(`1970-01-01T${damageIncTimeStart}`);
   lastTime = new Date(`1970-01-01T${damageIncTimeEnd}`);
   elapsedTime = (lastTime - currentTime) > 0 ? (lastTime - currentTime) / 1000 : 0;
   let idps = parseFloat((elapsedTime > 0 ? damageInc / elapsedTime : damageInc).toFixed(2));
   mainWindow.webContents.send('update-header',  loggingEnabled );
-  mainWindow.webContents.send('update-values', { damageOut, heals, damageInc, dps, hps, idps });
-  mainWindow.webContents.send('update-chart-map', damageMap, healMap, damageIncMap, combinedMap);
-  updateTableData(spellDamageMap);
+  mainWindow.webContents.send('update-values', { damageOut, heals, iheals, damageInc, dps, hps, idps, ihps });
+  mainWindow.webContents.send('update-chart-map', damageMap, healMap, ihealMap, damageIncMap, combinedMap);
+  updateTableData(spellDamageMap, healTargetMap, meleeDamageMap);
 }
 
 
@@ -469,12 +558,17 @@ function checkFileChanges() {
   });
 }
 
+
 let tableWindow;
 
+let tableWindowHeals;
+
+let tableWindowMelee;
 
 
 
-ipcMain.on('open-table-window', (event, spellData) => {
+
+ipcMain.on('open-table-window', (event) => {
   if (!tableWindow || tableWindow.isDestroyed()) {
     tableWindow = new BrowserWindow({
       width: 600,
@@ -506,8 +600,81 @@ ipcMain.on('open-table-window', (event, spellData) => {
   }
 });
 
-function updateTableData(updatedSpellData) {
+ipcMain.on('open-table-window-melee', (event) => {
+  if (!tableWindowMelee || tableWindowMelee.isDestroyed()) {
+    tableWindowMelee = new BrowserWindow({
+      width: 600,
+      height: 300,
+      minWidth: 100,
+      minHeight: 100,
+      autoHideMenuBar: true,
+      titleBarStyle: 'hiddenInset',
+      focusable: true,
+      focus: true,
+      frame: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+      },
+      resizable: true,
+      alwaysOnTop: true
+    });
+
+    tableWindowMelee.setAlwaysOnTop(true, 'screen-saver', 1);
+    
+    tableWindowMelee.loadFile(path.join(__dirname, 'melee.html'));
+    tableWindowMelee.webContents.on('did-finish-load', () => {
+      tableWindowMelee.webContents.send('load-table-data-melee', meleeDamageMap);
+    });
+
+    tableWindowMelee.on('closed', () => {
+      tableWindowMelee = null;
+    });
+  }
+});
+
+
+ipcMain.on('open-table-window-heals', (event) => {
+  if (!tableWindowHeals || tableWindowHeals.isDestroyed()) {
+    tableWindowHeals = new BrowserWindow({
+      width: 600,
+      height: 300,
+      minWidth: 100,
+      minHeight: 100,
+      autoHideMenuBar: true,
+      titleBarStyle: 'hiddenInset',
+      focusable: true,
+      focus: true,
+      frame: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+      },
+      resizable: true,
+      alwaysOnTop: true
+    });
+
+    tableWindowHeals.setAlwaysOnTop(true, 'screen-saver', 1);
+    
+    tableWindowHeals.loadFile(path.join(__dirname, 'heals.html'));
+    tableWindowHeals.webContents.on('did-finish-load', () => {
+      tableWindowHeals.webContents.send('load-table-data-heals', healTargetMap);
+    });
+
+    tableWindowHeals.on('closed', () => {
+      tableWindowHeals = null;
+    });
+  }
+});
+
+function updateTableData(updatedSpellData, updatedHealsData, updatedHealsData) {
   if (tableWindow && !tableWindow.isDestroyed()) {
     tableWindow.webContents.send('update-table-data', updatedSpellData);
+  }
+
+  if (tableWindowHeals && !tableWindowHeals.isDestroyed()) {
+    tableWindowHeals.webContents.send('update-table-data-heals', updatedHealsData);
+  }
+
+  if (tableWindowMelee && !tableWindowMelee.isDestroyed()) {
+    tableWindowMelee.webContents.send('update-table-data-melee', updatedMeleeData);
   }
 }

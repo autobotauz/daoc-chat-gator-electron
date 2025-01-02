@@ -8,15 +8,15 @@
 
 </head>
 <div id="header">
-  <button id="toggleChartButton">Chart</button>
-
-  <img src="gator.png" alt="Icon" class="icon">
-  <div class="btn-group">
-    <button id="selectFile" class="button">Chat Gator</button>
-  </div>
-  <img src="gator.png" alt="Icon" class="icon">
   
-  <button id="openTableButton">Table</button>
+
+  <div class="btn-group">
+    <button id="selectFile" class="button">LogFile</button>
+    <button id="toggleChartButton" class="button">Chart</button>
+    <button id="openTableButtonSpells" class="button">Spells</button>
+    <button id="openTableButtonMelee" class="button">Melee</button>
+    <button id="openTableButtonHeals" class="button">Heals</button>
+</div>
   
 
 </div>
@@ -24,18 +24,23 @@
 <body>
   <div id="values">
     <div id="values-damage">
-      <div id="damageOut">Damage: 0</div>
+      <div id="damageOut">Out Damage: 0</div>
       <div id="dps">DPS: 0</div>
     </div>
 
     <div id="values-damage">
-      <div id="damageInc">Inc Damage: 0</div>
-      <div id="idps">IDPS: 0</div>
+      <div id="damageInc">In Damage: 0</div>
+      <div id="idps">DPS: 0</div>
     </div>
 
     <div id="values-heal">
-      <div id="heals">Heals: 0</div>
+      <div id="heals">Out Heals: 0</div>
       <div id="hps">HPS: 0</div>
+    </div>
+
+    <div id="values-heal">
+      <div id="iheals">In Heals: 0</div>
+      <div id="ihps">HPS: 0</div>
     </div>
   </div>
   
