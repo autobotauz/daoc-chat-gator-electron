@@ -74,7 +74,8 @@ function createWindow() {
 
 
 function damageLine(regexMatch) {
-  const [, lineTimestamp, target, val] = regexMatch;
+  const [, timestamp, target, val] = regexMatch;
+  let lineTimestamp = updateTimestamp(timestamp)
   if (dpsTimeStart == 0) {
     dpsTimeStart = lineTimestamp;
   }
@@ -165,12 +166,38 @@ function updateHealMap(target, val) {
   }
 }
 
-function damageWeapLine(regexMatch) {
-  const [, lineTimestamp, target, weapon, val] = regexMatch;
-  if (dpsTimeStart == 0) {
-    dpsTimeStart = lineTimestamp;
+let previousTimestamp = "-01:-01:-01"; // Initial value for comparison
+let currentDate = new Date(); // Current date for the initial timestamp
+let datePrefix = `${currentDate.getFullYear()}:${String(currentDate.getMonth() + 1).padStart(2, '0')}:${String(currentDate.getDate()).padStart(2, '0')}`;
+
+function updateTimestamp(lineTimestamp) {
+  const [prevHour, prevMinute, prevSecond] = previousTimestamp.split(":").map(Number);
+  const [lineHour, lineMinute, lineSecond] = lineTimestamp.split(":").map(Number);
+
+  // Check if the line timestamp is earlier than the previous one (indicating a day rollover)
+  if (
+    lineHour < prevHour ||
+    (lineHour === prevHour && lineMinute < prevMinute) ||
+    (lineHour === prevHour && lineMinute === prevMinute && lineSecond < prevSecond)
+  ) {
+    // Increment the day
+    let currentDateObject = new Date( datePrefix.replace(/:/g, '-').replace(' ', 'T')); // Convert yyyy:mm:dd to Date object
+    currentDateObject.setDate(currentDateObject.getDate() + 1);
+    currentDateObject = new Date(currentDateObject)
+    datePrefix = `${currentDateObject.getFullYear()}:${String(currentDateObject.getMonth() + 1).padStart(2, '0')}:${String(currentDateObject.getDate()+1).padStart(2, '0')}`;
   }
-  dpsTimeEnd = lineTimestamp;
+  
+  previousTimestamp = lineTimestamp; // Update the global previousTimestamp
+  return `${datePrefix} ${lineTimestamp}`; // Return the updated timestamp
+}
+
+function damageWeapLine(regexMatch) {
+  const [, timestamp, target, weapon, val] = regexMatch;
+  let lineTimestamp = updateTimestamp(timestamp)
+  if (dpsTimeStart == 0) {
+    dpsTimeStart = timestamp;
+  }
+  dpsTimeEnd = timestamp;
   if (damageMap.has(lineTimestamp)) {
     const currentValue = parseInt(damageMap.get(lineTimestamp), 10);
     const newValue = currentValue + parseInt(val, 10);
@@ -178,7 +205,6 @@ function damageWeapLine(regexMatch) {
   } else {
     damageMap.set(lineTimestamp, parseInt(val, 10));
   }
-
   if (spellName == "") {
     updateMeleeMap(weapon, val);
   } else {
@@ -190,11 +216,12 @@ function damageWeapLine(regexMatch) {
 }
 
 function dotNPetLine(regexMatch) {
-  const [, lineTimestamp, spell, target, val] = regexMatch;
+  const [, timestamp, spell, target, val] = regexMatch;
+  let lineTimestamp = updateTimestamp(timestamp)
   if (dpsTimeStart == 0) {
-    dpsTimeStart = lineTimestamp;
+    dpsTimeStart = timestamp;
   }
-  dpsTimeEnd = lineTimestamp;
+  dpsTimeEnd = timestamp;
   if (damageMap.has(lineTimestamp)) {
     const currentValue = parseInt(damageMap.get(lineTimestamp), 10);
     const newValue = currentValue + parseInt(val, 10);
@@ -211,11 +238,12 @@ function dotNPetLine(regexMatch) {
 }
 
 function critLine(regexMatch) {
-  const [, lineTimestamp, val] = regexMatch;
+  const [, timestamp, val] = regexMatch;
+  let lineTimestamp = updateTimestamp(timestamp)
   if (dpsTimeStart == 0) {
-    dpsTimeStart = lineTimestamp;
+    dpsTimeStart = timestamp;
   }
-  dpsTimeEnd = lineTimestamp;
+  dpsTimeEnd = timestamp;
   if (damageMap.has(lineTimestamp)) {
     const currentValue = parseInt(damageMap.get(lineTimestamp), 10);
     const newValue = currentValue + parseInt(val, 10);
@@ -232,9 +260,10 @@ function critLine(regexMatch) {
 }
 
 function healLine(regexMatch) {
-  const [, lineTimestamp, target, val] = regexMatch;
+  const [, timestamp, target, val] = regexMatch;
+  let lineTimestamp = updateTimestamp(timestamp)
   if (healTimeStart == 0) {
-    healTimeStart = lineTimestamp;
+    healTimeStart = timestamp;
   }
 
   if (healMap.has(lineTimestamp)) {
@@ -249,14 +278,15 @@ function healLine(regexMatch) {
   updateHealMap("Out: "+target, val)
 
   combinedMap.set(lineTimestamp, 0)
-  healTimeEnd = lineTimestamp;
+  healTimeEnd = timestamp;
   heals += parseInt(val, 10);
 }
 
 function healByLine(regexMatch) {
-  const [, lineTimestamp, target, val] = regexMatch;
+  const [, timestamp, target, val] = regexMatch;
+  let lineTimestamp = updateTimestamp(timestamp)
   if (healTimeStart == 0) {
-    healTimeStart = lineTimestamp;
+    healTimeStart = timestamp;
   }
 
   if (ihealMap.has(lineTimestamp)) {
@@ -270,14 +300,15 @@ function healByLine(regexMatch) {
   updateHealMap("In: "+target, val)
 
   combinedMap.set(lineTimestamp, 0)
-  healTimeEnd = lineTimestamp;
+  healTimeEnd = timestamp;
   iheals += parseInt(val, 10);
 }
 
 function healCritLine(regexMatch) {
-  const [, lineTimestamp, val] = regexMatch;
+  const [, timestamp, val] = regexMatch;
+  let lineTimestamp = updateTimestamp(timestamp)
   if (healTimeStart == 0) {
-    healTimeStart = lineTimestamp;
+    healTimeStart = timestamptimestamp;
   }
 
   if (healMap.has(lineTimestamp)) {
@@ -293,15 +324,16 @@ function healCritLine(regexMatch) {
   // updateSpellMap(spellName, val);
 
   combinedMap.set(lineTimestamp, 0)
-  healTimeEnd = lineTimestamp;
+  healTimeEnd = timestamp;
   heals += parseInt(val, 10);
 }
 
 
 function damageIncLine(regexMatch) {
-  const [, lineTimestamp, val] = regexMatch;
+  const [, timestamp, val] = regexMatch;
+  let lineTimestamp = updateTimestamp(timestamp)
   if (damageIncTimeStart == 0) {
-    damageIncTimeStart = lineTimestamp;
+    damageIncTimeStart = timestamp;
   }
 
   if (damageIncMap.has(lineTimestamp)) {
@@ -312,7 +344,7 @@ function damageIncLine(regexMatch) {
     damageIncMap.set(lineTimestamp, parseInt(val, 10));
   }
   combinedMap.set(lineTimestamp, 0)
-  damageIncTimeEnd = lineTimestamp;
+  damageIncTimeEnd = timestamp;
   damageInc += parseInt(val, 10);
 }
 
@@ -370,7 +402,7 @@ function readChatLog() {
   
   const overHealedPattern = /\[(\d{2}:\d{2}:\d{2})\] fully healed/;
  
-  const logOpenedPattern = /Chat Log Opened:.+?\d{2}:\d{2}:\d{2} \d{4}/;
+  const logOpenedPattern = /Chat Log Opened:\s*(.+? \d{2}:\d{2}:\d{2} \d{4})/;
   const logClosedPattern = /Chat Log Closed:.+?\d{2}:\d{2}:\d{2} \d{4}/;
 
 
@@ -434,6 +466,9 @@ function readChatLog() {
       } 
       else if (logOpenedMatch) {
         loggingEnabled = true;
+        const timestamp = logOpenedMatch[1];
+        currentDate = new Date(timestamp);
+        datePrefix = `${currentDate.getFullYear()}:${String(currentDate.getMonth() + 1).padStart(2, '0')}:${String(currentDate.getDate()).padStart(2, '0')}`;
       } else if (logClosedMatch) {
         loggingEnabled = false;
       } 
