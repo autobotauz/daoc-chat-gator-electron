@@ -136,14 +136,8 @@ document.getElementById('openTableButtonHeals').addEventListener('click', () => 
 ipcRenderer.on('update-values', (event, values) => {
   document.getElementById('damageOut').textContent = `Out Damage: ${values.damageOut}`;
   document.getElementById('heals').textContent = `Out Heals: ${values.heals}`;
-  document.getElementById('dps').textContent = `DPS: ${values.dps}`;
-  document.getElementById('hps').textContent = `HPS: ${values.hps}`;
-
   document.getElementById('damageInc').textContent = `In Damage: ${values.damageInc}`;
-  document.getElementById('idps').textContent = `DPS: ${values.idps}`;
-
   document.getElementById('iheals').textContent = `In Heals: ${values.iheals}`;
-  document.getElementById('ihps').textContent = `HPS: ${values.ihps}`;
 });
 
 document.getElementById('selectFile').addEventListener('click', () => {

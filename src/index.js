@@ -207,12 +207,12 @@ function damageWeapLine(regexMatch) {
   } else {
     damageMap.set(lineTimestamp, parseInt(val, 10));
   }
-  if (spellName == "") {
+  if (styleName == "") {
     updateMeleeMap(weapon, val);
   } else {
-    updateMeleeMap(spellName, val);
+    updateMeleeMap(styleName, val);
   }
-
+  styleName = "";
   combinedMap.set(lineTimestamp, 0)
   damageOut += parseInt(val, 10);
 }
@@ -352,7 +352,7 @@ function damageIncLine(regexMatch) {
 
 let loggingEnabled = false;
 let spellName = "";
-
+let styleName = "";
 function resetValues() {
   dpsTimeStart = 0;
   dpsTimeEnd= 0;
@@ -504,7 +504,8 @@ function readChatLog() {
           } 
           else if (styleGrowthMatch) {
             const [, lineTimestamp, val, growth] = styleGrowthMatch;
-            spellName = val;
+            styleName = val;
+            // spellName = val;
           }
     
       });
