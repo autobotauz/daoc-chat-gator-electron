@@ -339,8 +339,8 @@ document.getElementById('selectFile').addEventListener('click', () => {
     chart.update();
     const chartHeight = document.getElementById('damageChart').offsetHeight;
 
-    // const { width } = win.getContentBounds();
-    // win.setSize(width, chartHeight, true);
+    const { width } = win.getContentBounds();
+    win.setSize(width, chartHeight, true);
   }
 
 
