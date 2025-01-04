@@ -15,13 +15,54 @@ ipcRenderer.on('update-table-data-heals', (event, updatedSpellData) => {
   loadTableDataHeal(spellDataToArray(updatedSpellData));
 });
 
-
 ipcRenderer.on('load-table-data-melee', (event, spellData) => {
   loadTableDataMelee(spellDataToArray(spellData));
 });
 ipcRenderer.on('update-table-data-melee', (event, updatedSpellData) => {
   loadTableDataMelee(spellDataToArray(updatedSpellData));
 });
+
+ipcRenderer.on('load-table-data-cooldown', (event) => {
+  updateTable();
+});
+
+const cooldowns = new Map(); // Use a Map to manage cooldowns with unique abilities as keys
+
+ipcRenderer.on('update-table-data-cooldown', (event, ability, timer) => {
+  console.log(ability, timer);
+  loadTableDataCooldown(ability, timer);
+});
+
+function loadTableDataCooldown(ability, cooldown) {
+  if (!cooldowns.has(ability)) {
+    // Only add new cooldowns
+    const timer = setInterval(() => {
+      const currentCooldown = cooldowns.get(ability);
+      if (currentCooldown > 0) {
+        cooldowns.set(ability, currentCooldown - 1); // Decrement cooldown
+        updateTable();
+      } else {
+        clearInterval(timer); // Stop the timer when cooldown reaches 0
+        cooldowns.delete(ability); // Remove the ability from the map
+        updateTable();
+      }
+    }, 1000);
+
+    cooldowns.set(ability, cooldown); // Add the cooldown to the map
+    updateTable();
+  }
+}
+
+function updateTable() {
+  const table = $('#cooldownTable').DataTable();
+  const tableData = Array.from(cooldowns.entries()).map(([ability, cooldown]) => [
+    ability,
+    cooldown,
+  ]);
+  table.clear();
+  table.rows.add(tableData);
+  table.draw();
+}
 
 
 function spellDataToArray(spellData) {
@@ -131,6 +172,10 @@ document.getElementById('openTableButtonMelee').addEventListener('click', () => 
 
 document.getElementById('openTableButtonHeals').addEventListener('click', () => {
   ipcRenderer.send('open-table-window-heals');
+});
+
+document.getElementById('openTableButtonCooldown').addEventListener('click', () => {
+  ipcRenderer.send('open-table-window-cooldown');
 });
 
 ipcRenderer.on('update-values', (event, values) => {
@@ -286,8 +331,6 @@ document.getElementById('selectFile').addEventListener('click', () => {
       dataDamageInc = aggregateData(damageIncMap, 1);
     }
 
-    console.log(dataDamageInc);
-
    const labels = Array.from(combineLabels.keys());
     const damageData = labels.map(timestamp => ({
       x: timestamp,
@@ -305,7 +348,6 @@ document.getElementById('selectFile').addEventListener('click', () => {
       x: timestamp,
       y: dataDamageInc.get(timestamp),
     }));
-    console.log(damageIncData);
     const sortedLabels = labels
     .map(timestamp => {
       const [datePart, timePart] = timestamp.split(' '); // Split into date and time parts

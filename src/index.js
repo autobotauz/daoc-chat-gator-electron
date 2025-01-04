@@ -5,6 +5,8 @@ const chokidar = require('chokidar');
 
 require("electron-reload")(__dirname)
 
+ipcMain.setMaxListeners(20);
+
 let mainWindow;
 let dpsTimeStart = 0;
 let dpsTimeEnd= 0;
@@ -403,8 +405,8 @@ function readChatLog() {
   const logOpenedPattern = /Chat Log Opened:\s*(.+? \d{2}:\d{2}:\d{2} \d{4})/;
   const logClosedPattern = /Chat Log Closed:.+?\d{2}:\d{2}:\d{2} \d{4}/;
 
-
-  try {
+  fs.watchFile(gatorLog, { interval: 100 }, (curr, prev) => {
+    const fileSize = curr.size;
     if (fileSize > lastReadPosition) {
       const stream = fs.createReadStream(gatorLog, {
         start: lastReadPosition, // Start reading from the last position
@@ -496,7 +498,8 @@ function readChatLog() {
             spellName = val;
             if (spellMap.has(spellName)) {
               let recast = spellMap.get(spellName)
-              // console.log(datePrefix, lineTimestamp, " - start cooldown: ", recast+ "s for ", spellName);
+              updateCooldowns(spellName, recast);
+              console.log(datePrefix, lineTimestamp, " - start cooldown: ", recast+ "s for ", spellName);
             }
           }  else if (shotMatch) {
             const [, lineTimestamp, val] = shotMatch;
@@ -534,11 +537,18 @@ function readChatLog() {
       });
 
       // Update the last read position to the current end of the file
-      lastReadPosition = fileSize;
+      // lastReadPosition = fileSize;
+      stream.on('end', () => {
+        lastReadPosition = fileSize; // Update the read position after reading
+      });
     }
-  } catch (error) {
-    console.error('Error reading chat log:', error.message);
-  }
+  });
+
+  // try {
+    
+  // } catch (error) {
+  //   console.error('Error reading chat log:', error.message);
+  // }
 }
 
 
@@ -628,7 +638,7 @@ let tableWindowHeals;
 
 let tableWindowMelee;
 
-
+let tableWindowCooldowns;
 
 
 ipcMain.on('open-table-window', (event) => {
@@ -728,6 +738,39 @@ ipcMain.on('open-table-window-heals', (event) => {
   }
 });
 
+ipcMain.on('open-table-window-cooldown', (event) => {
+  if (!tableWindowCooldowns || tableWindowCooldowns.isDestroyed()) {
+    tableWindowCooldowns = new BrowserWindow({
+      width: 450,
+      height: 300,
+      minWidth: 100,
+      minHeight: 100,
+      autoHideMenuBar: true,
+      titleBarStyle: 'hiddenInset',
+      frame: false, // Removes the native window frame
+      focusable: true,
+      focus: true,
+      transparent: true, // Makes the window background transparent
+      resizable: true,
+      alwaysOnTop: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+      },
+    });
+
+    tableWindowCooldowns.setAlwaysOnTop(true, 'screen-saver', 1);
+    
+    tableWindowCooldowns.loadFile(path.join(__dirname, 'cooldown.html'));
+    tableWindowCooldowns.webContents.on('did-finish-load', () => {
+      tableWindowCooldowns.webContents.send('load-table-data-cooldown');
+    });
+
+    tableWindowCooldowns.on('closed', () => {
+      tableWindowCooldowns = null;
+    });
+  }
+});
+
 function updateTableData(updatedSpellData, updatedHealsData, updatedHealsData) {
   if (tableWindow && !tableWindow.isDestroyed()) {
     tableWindow.webContents.send('update-table-data', updatedSpellData);
@@ -739,5 +782,12 @@ function updateTableData(updatedSpellData, updatedHealsData, updatedHealsData) {
 
   if (tableWindowMelee && !tableWindowMelee.isDestroyed()) {
     tableWindowMelee.webContents.send('update-table-data-melee', updatedMeleeData);
+  }
+}
+
+
+function updateCooldowns(ability, cooldown) {
+  if (tableWindowCooldowns && !tableWindowCooldowns.isDestroyed()) {
+    tableWindowCooldowns.webContents.send('update-table-data-cooldown', ability, cooldown);
   }
 }

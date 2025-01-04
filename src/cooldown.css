@@ -1,0 +1,136 @@
+/* Ensure there's no margin or padding around the body */
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background: transparent;
+    overflow-x: hidden; /* Remove horizontal scrollbar */
+}
+
+/* Style the fixed header */
+header {
+    position: fixed; /* Fix the header at the top */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 25px; /* Adjust header height as needed */
+    background-color: #0ab475; /* Semi-transparent header */
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    z-index: 1000;
+    -webkit-app-region: drag; /* Allow dragging the window */
+}
+
+/* Add padding to the main content to avoid overlap with the header */
+main {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Make the main content area fill the available space */
+    padding: 10px;
+    margin-top: 40px; /* Add margin-top to push the content below the fixed header */
+    overflow-y: scroll; /* Enable scrolling */
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+/* Hide the scrollbar but still allow scrolling */
+main::-webkit-scrollbar {
+    display: none; /* Hide the scrollbar */
+}
+
+/* For Firefox */
+main {
+    scrollbar-width: none; /* Hide scrollbar in Firefox */
+}
+
+/* Style the table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: transparent !important; /* Keep table background transparent */
+    color: yellow !important; /* Ensure text is yellow */
+}
+
+/* Table headers */
+th {
+    color: yellow !important; /* Yellow text */
+    border: none; /* Remove borders */
+    padding: 8px;
+    text-align: left;
+    background: transparent; /* Transparent background */
+}
+
+/* Table cells */
+td {
+    color: yellow !important; /* Yellow text */
+    border: none; /* Remove borders */
+    padding: 8px;
+    text-align: left;
+    background: transparent !important; /* Transparent background */
+}
+
+/* Adjust the DataTables wrapper styling */
+.dataTables_wrapper {
+    margin-top: 10px;
+    background: transparent !important; /* Transparent background for wrapper */
+}
+
+/* Remove DataTables applied styles */
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+    color: yellow !important; /* Yellow text for controls */
+    background: transparent !important; /* Transparent background for controls */
+}
+
+/* Remove row hover effects */
+table.display tbody tr:hover {
+    background: transparent !important;
+}
+
+/* Make table rows permanently transparent */
+table.display tbody tr {
+    background: transparent !important; /* Ensure the default row background is transparent */
+    color: yellow !important; /* Text color is yellow */
+}
+
+/* Remove hover effects (if already transparent on hover) */
+table.display tbody tr:hover {
+    background: transparent !important; /* Ensure hover state remains transparent */
+}
+
+/* Ensure any selected or active row is transparent */
+table.display tbody tr:active,
+table.display tbody tr.selected {
+    background: transparent !important; /* Ensure active/selected state remains transparent */
+}
+
+/* Adjust cell styles for transparency */
+table.display tbody tr td {
+    background: transparent !important; /* Ensure cells are transparent */
+    color: yellow !important; /* Ensure cell text remains yellow */
+    border: none; /* Remove cell borders */
+}
+
+/* Ensure DataTables wrapper and controls are transparent */
+.dataTables_wrapper {
+    background: transparent !important;
+    color: yellow !important;
+}
+
+/* Style the table to fill the available space */
+#cooldownTable {
+    width: 100%; /* Make the table fill the full width */
+    height: 100%; /* Make the table fill the full height of the container */
+    border-collapse: collapse;
+    overflow: hidden; /* Prevent overflow of content */
+}
+
+
+::-webkit-scrollbar {
+    width: 0px
+}
